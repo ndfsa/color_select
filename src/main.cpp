@@ -1,95 +1,69 @@
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
+#include <Magick++.h>
+
 #include <iostream>
-#include <cmath>
+#include <random>
 #include <string>
 
-using namespace cv;
+std::string getColor(double red, double green, double blue);
 
-std::string getColor(Mat& centers);
-std::string getColor(Vec3f& color);
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
-    if (argc != 2)
+    Magick::InitializeMagick("");
+
+    Magick::Image image;
+    double red = 0;
+    double green = 0;
+    double blue = 0;
+    try
     {
-        std::cout << "usage: color_picker <path_to_image>" << std::endl;
+        image.read(argv[1]);
+        int imgWidth = image.columns();
+        int imgHeight = image.rows();
+        int channels = image.channels();
+
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_int_distribution<int> dist(1, 10);
+
+        const MagickCore::Quantum *pixel_cache = image.getConstPixels(0, 0, imgWidth, imgHeight);
+
+        for (int offset = dist(mt); offset < imgHeight * imgWidth * channels; offset += channels * dist(mt))
+        {
+            red += (double)pixel_cache[offset] / (imgHeight * imgWidth) * 5;
+            green += (double)pixel_cache[offset + 1] / (imgHeight * imgWidth) * 5;
+            blue += (double)pixel_cache[offset + 2] / (imgHeight * imgWidth) * 5;
+        }
+        std::cout << "R: " << red << " G: " << green << " B: " << blue << std::endl;
+    }
+    catch (Magick::Exception &err)
+    {
+        std::cout << "Caught exception: " << err.what() << std::endl;
         return 1;
     }
-    std::string image_path = samples::findFile(argv[1]);
-    Mat input = imread(image_path, IMREAD_COLOR);
-    Mat img;
-    cv::resize(input, img, cv::Size(), 0.05, 0.05);
-    // convert to float & reshape to a [3 x W*H] Mat 
-    //  (so every pixel is on a row of it's own)
-    Mat data;
-    img.convertTo(data,CV_32F);
-    data = data.reshape(1,data.total());
-
-    // do kmeans
-    Mat labels, centers;
-    kmeans(data, 8, labels, TermCriteria( 5, 5, 1.0), 3, 
-           KMEANS_PP_CENTERS, centers);
-
-    // reshape both to a single row of Vec3f pixels:
-    centers = centers.reshape(3,centers.rows);
-    Mat hsv_centers;
-    cvtColor(centers, hsv_centers, COLOR_BGR2HSV, 0);
-    std::cout << getColor(hsv_centers) << std::endl;
-    //getColor(hsv_centers);
+    std::cout << getColor(red, green, blue) << std::endl;
     return 0;
 }
 
-std::string getColor(Mat& centers){
-    float max = -100;
-    int index = 0;
-    //for(int i = 0; i < centers.rows; ++i)
-    //{
-    //    float n = centers.at<Vec3f>(i, 0)[2] + centers.at<Vec3f>(i, 0)[1];
-    //    if (max < n)
-    //    {
-    //        max = n;
-    //        index = i;
-    //    }
-    //    //std::cout << centers.at<Vec3f>(i, 0) << std::endl;
-    //}
-    //std::cout << centers.at<Vec3f>(index, 0) << std::endl;
-    return getColor(centers.at<Vec3f>(index, 0));
-}
-
-std::string getColor(Vec3f& color){
-    if (color[0] < 44 && color[0] >= 0)
-    {
-        return "RED";
-    }
-    else if (color[0] < 76)
-    {
+std::string getColor(double red, double green, double blue)
+{
+    bool r = (red > 7000);
+    bool g = (green > 7000);
+    bool b = (blue > 7000);
+    if (r && g && b)
+        return "WHITE";
+    if (r && g && !b)
         return "YELLOW";
-    }
-    else if (color[0] < 147)
-    {
-        return "GREEN";
-    }
-    else if (color[0] < 196)
-    {
-        return "CYAN";
-    }
-    else if (color[0] < 249)
-    {
-        return "BLUE";
-    }
-    else if (color[0] < 346)
-    {
+    if (r && !g && b)
         return "MAGENTA";
-    }
-    else if (color[0] <= 360)
-    {
+    if (r && !g && !b)
         return "RED";
-    }
-    else
-    {
-        return "ERROR";
-    }
-
+    if (!r && g && b)
+        return "CYAN";
+    if (!r && g && !b)
+        return "GREEN";
+    if (!r && !g && b)
+        return "BLUE";
+    if (!r && !g && !b)
+        return "BLACK";
+    return "ERROR";
 }
