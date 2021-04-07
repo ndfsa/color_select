@@ -2,7 +2,6 @@
 
 #include <bits/stdc++.h>
 #include <cmath>
-#include <iostream>
 #include <ostream>
 #include <random>
 #include <string>
@@ -33,13 +32,11 @@ int main(int argc, char **argv)
     Magick::Image image;
     try
     {
-        image.read("/home/ndfsa/Pictures/test/" + std::string(argv[1]));
+        image.read(argv[1]);
         int imgWidth = image.columns();
         int imgHeight = image.rows();
         int channels = image.channels();
         image.colorSpace(MagickCore::HSVColorspace);
-        // image.quantizeColors(4);
-        // image.quantize();
 
         std::random_device rd;
         std::mt19937 mt(rd());
@@ -47,15 +44,9 @@ int main(int argc, char **argv)
 
         MagickCore::Quantum *pixel_cache = image.getPixels(0, 0, imgWidth, imgHeight);
 
-        // for (int offset = 0; offset < 15; offset += channels)
         for (int offset = dist(mt); offset < imgHeight * imgWidth * channels; offset += channels * dist(mt))
         {
-            // std::cout << pixel_cache[offset] * 255 / 65535 << " " << pixel_cache[offset + 1] * 255 / 65535 << " "
-            //          << pixel_cache[offset + 2] * 255 / 65535 << " " << std::endl;
-            // std::cout << pixel_cache[offset] * 360 / 65535 << " " << pixel_cache[offset + 1] * 100 / 65535 << " "
-            //          << pixel_cache[offset + 2] * 100 / 65535 << " " << std::endl;
             Color aux = getColor(pixel_cache[offset]);
-            // std::cout << "color: " << aux << std::endl;
             count(color_counter, aux, pixel_cache[offset + 1], pixel_cache[offset + 2]);
         }
         std::cout << getMaxColor(color_counter) << std::endl;
@@ -85,7 +76,6 @@ int getMaxColor(double *color_counter)
             max = color_counter[i];
             maxi = i;
         }
-        std::cout << color_counter[i] << std::endl;
     }
     return maxi;
 }
