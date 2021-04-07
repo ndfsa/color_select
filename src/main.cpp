@@ -40,9 +40,9 @@ int main(int argc, char **argv)
 
         std::random_device rd;
         std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(1, 10);
+        std::uniform_int_distribution<int> dist(1, 12);
 
-        MagickCore::Quantum *pixel_cache = image.getPixels(0, 0, imgWidth, imgHeight);
+        const MagickCore::Quantum *pixel_cache = image.getConstPixels(0, 0, imgWidth, imgHeight);
 
         for (int offset = dist(mt); offset < imgHeight * imgWidth * channels; offset += channels * dist(mt))
         {
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
 void count(double *color_counter, Color color, double saturation, double value)
 {
-    int s = (value > 1966 ? (saturation > 2621 ? color : 7) : 0);
+    int s = (value > 1966 ? (saturation > 4587 ? color : 7) : 0);
     color_counter[s] += saturation * value / (65535.0 * 65535.0);
 }
 
@@ -82,15 +82,15 @@ int getMaxColor(double *color_counter)
 
 Color getColor(double hue)
 {
-    if (hue <= 7463)
+    if (hue <= 6189)
     {
         return Color::RED;
     }
-    else if (hue <= 13107)
+    else if (hue <= 13653)
     {
         return Color::YELLOW;
     }
-    else if (hue <= 26031)
+    else if (hue <= 25121)
     {
         return Color::GREEN;
     }
@@ -102,7 +102,7 @@ Color getColor(double hue)
     {
         return Color::BLUE;
     }
-    else if (hue <= 60801)
+    else if (hue <= 61530)
     {
         return Color::MAGENTA;
     }
