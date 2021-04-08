@@ -21,7 +21,7 @@ enum Color
 };
 
 Color getColor(double hue);
-int count(double *color_counter, Color color, double saturation, double value);
+int count(double *color_counter, Color color, double saturation, double value, double alpha);
 int getMaxColor(double *color_counter);
 void changePixel(Magick::Quantum *pixel_cache, int offset, int last);
 
@@ -36,12 +36,15 @@ int main(int argc, char **argv)
     try
     {
         image.read(argv[1]);
-        int imgWidth = image.columns();
-        int imgHeight = image.rows();
-        int channels = image.channels();
+
+        const int imgWidth = image.columns();
+        const int imgHeight = image.rows();
+        const bool has_alpha = image.alpha();
+        const int channels = (has_alpha ? 4 : 3);
+
         image.colorSpace(MagickCore::HSVColorspace);
 
-        //MagickCore::Quantum *pixel_cache = image.getPixels(0, 0, imgWidth, imgHeight);
+        // MagickCore::Quantum *pixel_cache = image.getPixels(0, 0, imgWidth, imgHeight);
         const MagickCore::Quantum *pixel_cache = image.getConstPixels(0, 0, imgWidth, imgHeight);
         double max_side = fmax(imgHeight, imgWidth);
         if (max_side >= 860)
@@ -50,24 +53,26 @@ int main(int argc, char **argv)
             std::random_device rd;
             std::mt19937 mt(rd());
             std::uniform_int_distribution<int> dist(1, sample);
-            //std::cout << "avg sample: " << sample << std::endl;
+            // std::cout << "max sample: " << sample << std::endl;
 
-            for (int offset = dist(mt) * 3; offset < imgHeight * imgWidth * 3; offset += 3 * dist(mt))
+            for (int offset = dist(mt) * (has_alpha ? 4 : 3); offset < imgHeight * imgWidth * channels;
+                 offset += channels * dist(mt))
             {
-                int last = count(color_counter, getColor(pixel_cache[offset]), pixel_cache[offset + 1],
-                                 pixel_cache[offset + 2]);
-                //changePixel(pixel_cache, offset, last);
+                count(color_counter, getColor(pixel_cache[offset]), pixel_cache[offset + 1], pixel_cache[offset + 2],
+                      has_alpha ? pixel_cache[offset + 3] * 1.53e-5 : 1);
+                // changePixel(pixel_cache, offset, last);
             }
         }
         else
         {
-            for (int i = 0; i < imgHeight * imgWidth * 3; i += 3)
+            for (int i = 0; i < imgHeight * imgWidth * channels; i += channels)
             {
-                int last = count(color_counter, getColor(pixel_cache[i]), pixel_cache[i + 1], pixel_cache[i + 2]);
-                //changePixel(pixel_cache, i, last);
+                count(color_counter, getColor(pixel_cache[i]), pixel_cache[i + 1], pixel_cache[i + 2],
+                      has_alpha ? pixel_cache[i + 3] * 1.53e-5 : 1);
+                // changePixel(pixel_cache, i, last);
             }
         }
-        //image.write("/home/ndfsa/Pictures/test/test.png");
+        // image.write("/home/ndfsa/Pictures/test/test.png");
         std::cout << getMaxColor(color_counter) << std::endl;
     }
     catch (Magick::Exception &err)
@@ -78,10 +83,10 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int count(double *color_counter, Color color, double saturation, double value)
+int count(double *color_counter, Color color, double saturation, double value, double alpha)
 {
-    int s = (value > 9830 ? (saturation > -0.3333 * value + 29053 ? color : (value > 42597 ? 7 : 0)) : 0);
-    ++color_counter[s];
+    int s = (value > 11796 ? (saturation > -0.3333 * value + 29053 ? color : (value > 42597 ? 7 : 0)) : 0);
+    color_counter[s] += alpha * saturation * value * 2.33e-10;
     return s;
 }
 
@@ -96,14 +101,14 @@ int getMaxColor(double *color_counter)
             max = color_counter[i];
             maxi = i;
         }
-        //std::cout << "Color: " << i << " = " << color_counter[i] << std::endl;
+        // std::cout << "Color: " << i << " = " << color_counter[i] << std::endl;
     }
     return maxi;
 }
 
 Color getColor(double hue)
 {
-    if (hue <= 4551)
+    if (hue <= 4004)
     {
         return Color::RED;
     }
@@ -123,7 +128,7 @@ Color getColor(double hue)
     {
         return Color::BLUE;
     }
-    else if (hue <= 61530)
+    else if (hue <= 62622)
     {
         return Color::MAGENTA;
     }
