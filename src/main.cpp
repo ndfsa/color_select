@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 
         std::random_device rd;
         std::mt19937 mt(rd());
-        std::uniform_int_distribution<int> dist(1, 12);
+        std::uniform_int_distribution<int> dist(1, 10);
 
         const MagickCore::Quantum *pixel_cache = image.getConstPixels(0, 0, imgWidth, imgHeight);
 
@@ -82,11 +82,11 @@ int getMaxColor(double *color_counter)
 
 Color getColor(double hue)
 {
-    if (hue <= 6189)
+    if (hue <= 4551)
     {
         return Color::RED;
     }
-    else if (hue <= 13653)
+    else if (hue <= 14745)
     {
         return Color::YELLOW;
     }
