@@ -55,7 +55,7 @@ int main(int argc, char **argv)
             std::uniform_int_distribution<int> dist(1, sample);
             // std::cout << "max sample: " << sample << std::endl;
 
-            for (int offset = dist(mt) * (has_alpha ? 4 : 3); offset < imgHeight * imgWidth * channels;
+            for (int offset = dist(mt) * channels; offset < imgHeight * imgWidth * channels;
                  offset += channels * dist(mt))
             {
                 count(color_counter, getColor(pixel_cache[offset]), pixel_cache[offset + 1], pixel_cache[offset + 2],
