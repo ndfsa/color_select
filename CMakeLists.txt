@@ -4,6 +4,6 @@ set(CMAKE_BUILD_TYPE "Release")
 
 # set the project name
 project(color_select)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
 
 add_subdirectory(src)
