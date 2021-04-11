@@ -1,9 +1,13 @@
+//#include <chrono>
 #include <cmath>
-#include <ostream>
+#include <iostream>
 #include <random>
 #include <string>
+#include <thread>
 
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 enum Color
 {
@@ -19,7 +23,7 @@ enum Color
 };
 
 Color classify(int hue);
-void count(std::vector<double> &color_counter, Color color, double saturation, double value);
+void count(std::vector<double> &color_counter, int start, int size, cv::Vec3b *ptr);
 int getMaxColor(std::vector<double> &color_counter);
 void changePixel(cv::Vec3b &pixel, int last);
 
@@ -31,7 +35,7 @@ int main(int argc, char **argv)
         std::cout << "usage: color_counter <Image_Path>" << std::endl;
         return 1;
     }
-
+    // auto start_time = std::chrono::high_resolution_clock::now();
     // read the image into a Mat
     cv::Mat image = cv::imread(argv[1], cv::IMREAD_COLOR);
 
@@ -47,48 +51,57 @@ int main(int argc, char **argv)
     cv::cvtColor(image.reshape(0, 1), hsv_image, cv::COLOR_BGR2HSV_FULL);
 
     // sample size
-    const int sample = floor((double)hsv_image.cols * 1.3521e-6) + 1;
-
-    // random number generator
-    static std::minstd_rand eng{std::random_device{}()};
-    static std::uniform_int_distribution<int> dist{1, sample};
-    //std::cout << "sample: " << sample << std::endl;
+    // std::cout << "sample: " << sample << std::endl;
 
     // count vector
-    std::vector<double> counter(9, 0);
+    std::vector<double> counter1(9, 0);
+    std::vector<double> counter2(9, 0);
 
-    //pointer to HSV data
+    // pointer to HSV data
     cv::Vec3b *ptr = hsv_image.ptr<cv::Vec3b>(0);
-    for (int offset = dist(eng); offset < hsv_image.cols; offset += dist(eng))
-    {
-        count(counter, classify(ptr[offset][0]), (double)ptr[offset][1], (double)ptr[offset][2]);
-        //changePixel(ptr[offset], last);
-    }
 
-    //auto it = *max_element(std::begin(counter), std::end(counter));
-    //std::cout << it << std::endl;
-    std::cout << getMaxColor(counter) << std::endl;
+    std::thread t1(count, std::ref(counter1), 0, floor((double)hsv_image.cols / 2), ptr);
+    std::thread t2(count, std::ref(counter2), floor((double)hsv_image.cols / 2), hsv_image.cols, ptr);
 
+    t1.join();
+    t2.join();
 
-    //cv::cvtColor(hsv_image.reshape(0, image.rows), image, cv::COLOR_HSV2BGR_FULL);
-    //std::string windowName = "test result"; // Name of the window
-
-    //cv::namedWindow(windowName); // Create a window
-
-    //cv::imshow(windowName, image); // Show our image inside the created window.
-
-    //cv::waitKey(0); // Wait for any keystroke in the window
-
-    //cv::destroyWindow(windowName); // destroy the created window
+    std::transform(counter1.begin(), counter1.end(), counter2.begin(), counter1.begin(), std::plus<double>());
+    std::cout << getMaxColor(counter1) << std::endl;
 
     return 0;
 }
 
-void count(std::vector<double> &color_counter, Color color, double saturation, double value)
+void count(std::vector<double> &color_counter, int start, int size, cv::Vec3b *ptr)
 {
-    int s = (value > 45 ? (saturation > -0.3333 * value + 113 ? color : (value > 164 ? 7 : 0)) : 0);
-    color_counter[s] += saturation * value * 1.53e-5;
-    //return s;
+    int sample;
+    if (size - start > 739600)
+    {
+        sample = floor((double)(size - start) * 2.7042e-6) + 1;
+        static std::minstd_rand eng{std::random_device{}()};
+        static std::uniform_int_distribution<int> dist{1, sample};
+        for (int offset = start + dist(eng); offset < size; offset += dist(eng))
+        {
+            int s = (ptr[offset][2] > 45
+                         ? (ptr[offset][1] > -0.3333 * ptr[offset][2] + 113 ? classify(ptr[offset][0])
+                                                                            : (ptr[offset][2] > 160 ? 7 : 0))
+                         : 0);
+            color_counter[s] += ptr[offset][1] * ptr[offset][2] * 1.5379e-5;
+            // changePixel(ptr[offset], s);
+        }
+    }
+    else
+    {
+        for (int offset = start; offset < size; offset++)
+        {
+            int s = (ptr[offset][2] > 45
+                         ? (ptr[offset][1] > -0.3333 * ptr[offset][2] + 113 ? classify(ptr[offset][0])
+                                                                            : (ptr[offset][2] > 164 ? 7 : 0))
+                         : 0);
+            color_counter[s] += ptr[offset][1] * ptr[offset][2] * 1.53e-5;
+            // changePixel(ptr[offset], s);
+        }
+    }
 }
 
 int getMaxColor(std::vector<double> &color_counter)
@@ -102,7 +115,7 @@ int getMaxColor(std::vector<double> &color_counter)
             max = color_counter[i];
             maxi = i;
         }
-        //std::cout << "Color: " << i << " = " << color_counter[i] << std::endl;
+        // std::cout << "Color: " << i << " = " << color_counter[i] << std::endl;
     }
     return maxi;
 }
