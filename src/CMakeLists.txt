@@ -1,7 +1,5 @@
-add_executable(color_select main.cpp)
-add_definitions( -DMAGICKCORE_QUANTUM_DEPTH=16 )
-add_definitions( -DMAGICKCORE_HDRI_ENABLE=1 )
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
 
-find_package( ImageMagick COMPONENTS Magick++ )
-include_directories( ${ImageMagick_INCLUDE_DIRS} )
-target_link_libraries( color_select ${ImageMagick_LIBRARIES} )
+add_executable(color_select color_select.cpp)
+target_link_libraries( color_select ${OpenCV_LIBS} )
