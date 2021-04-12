@@ -62,6 +62,7 @@ int main(int argc, char **argv)
 
     // pointer to HSV data
     cv::Vec3b *ptr = hsv_image.ptr<cv::Vec3b>(0);
+    // std::cout << "pixels: " << hsv_image.cols << std::endl;
 
     // create threads
     std::vector<std::thread> threads(thread_number);
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
         int start = floor((double)hsv_image.cols * i / thread_number);
         int size = floor((double)hsv_image.cols * (i + 1.0) / thread_number);
         threads[i] = std::thread(count, std::ref(counters[i]), start, size, thread_number,
-                                 floor((size - start) * 5.4083e-6 * thread_number), ptr);
+                                 floor((size - start) * 2.1633e-5 * thread_number) + 1, ptr);
     }
 
     // join threads after finishing processes
@@ -95,12 +96,16 @@ int main(int argc, char **argv)
     //                 .count()
     //          << std::endl;
 
-    // cv::cvtColor(hsv_image.reshape(0, image.rows), image, cv::COLOR_HSV2BGR_FULL);
-    // std::string windowName = "test result"; // Name of the window
-    // cv::namedWindow(windowName); // Create a window
-    // cv::imshow(windowName, image); // Show our image inside the created window.
-    // cv::waitKey(0); // Wait for any keystroke in the window
-    // cv::destroyWindow(windowName); // destroy the created window
+    cv::cvtColor(hsv_image.reshape(0, image.rows), image, cv::COLOR_HSV2BGR_FULL);
+    std::string windowName = "test result"; // Name of the window
+    cv::namedWindow(windowName);            // Create a window
+    cv::imshow(windowName, image);          // Show our image inside the created window.
+    while ((cv::waitKey(0) & 0xFF) != 27)   // Wait for any keystroke in the window
+    {
+
+        continue;
+    }
+    cv::destroyWindow(windowName); // destroy the created window
     return 0;
 }
 
@@ -110,15 +115,16 @@ void count(std::vector<double> &color_counter, int start, int size, double threa
     {
         static std::minstd_rand eng{std::random_device{}()};
         static std::uniform_int_distribution<int> dist{1, sample};
+        // std::cout << "sample: " << sample << std::endl;
 
         for (int offset = start + dist(eng); offset < size; offset += dist(eng))
         {
             int s = (ptr[offset][2] > 45
-                         ? (ptr[offset][1] > -0.3333 * ptr[offset][2] + 113 ? classify(ptr[offset][0])
+                         ? (ptr[offset][1] > -0.3333 * ptr[offset][2] + 105 ? classify(ptr[offset][0])
                                                                             : (ptr[offset][2] > 160 ? 7 : 0))
                          : 0);
             color_counter[s] += ptr[offset][1] * ptr[offset][2] * 1.5379e-5;
-            // changePixel(ptr[offset], s);
+            changePixel(ptr[offset], s);
         }
     }
     else
@@ -130,7 +136,7 @@ void count(std::vector<double> &color_counter, int start, int size, double threa
                                                                             : (ptr[offset][2] > 164 ? 7 : 0))
                          : 0);
             color_counter[s] += ptr[offset][1] * ptr[offset][2] * 1.53e-5;
-            // changePixel(ptr[offset], s);
+            changePixel(ptr[offset], s);
         }
     }
 }
@@ -173,7 +179,7 @@ Color classify(int hue)
     {
         return Color::BLUE;
     }
-    else if (hue <= 243)
+    else if (hue <= 230)
     {
         return Color::MAGENTA;
     }
