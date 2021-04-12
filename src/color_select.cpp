@@ -23,16 +23,16 @@ enum Color
 };
 
 Color classify(int hue);
-void count(std::vector<double> &color_counter, int start, int size, cv::Vec3b *ptr);
+void count(std::vector<double> &color_counter, int start, int size, double thread_number, int sample, cv::Vec3b *ptr);
 int getMaxColor(std::vector<double> &color_counter);
 void changePixel(cv::Vec3b &pixel, int last);
 
 int main(int argc, char **argv)
 {
     // check if path was passed
-    if (argc != 2)
+    if (argc < 2)
     {
-        std::cout << "usage: color_counter <Image_Path>" << std::endl;
+        std::cout << "usage: color_counter <Image_Path> [-t <Thread number>]" << std::endl;
         return 1;
     }
     // auto start_time = std::chrono::high_resolution_clock::now();
@@ -50,36 +50,67 @@ int main(int argc, char **argv)
     cv::Mat hsv_image;
     cv::cvtColor(image.reshape(0, 1), hsv_image, cv::COLOR_BGR2HSV_FULL);
 
-    // sample size
-    // std::cout << "sample: " << sample << std::endl;
+    // number of threads
+    const int thread_number = (argc == 4 && std::string(argv[2]) == "-t") ? std::stoi(argv[3]) : 2;
 
-    // count vector
-    std::vector<double> counter1(9, 0);
-    std::vector<double> counter2(9, 0);
+    // create vector counters
+    std::vector<std::vector<double>> counters(thread_number);
+    for (std::vector<double> &counter : counters)
+    {
+        counter = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+    }
 
     // pointer to HSV data
     cv::Vec3b *ptr = hsv_image.ptr<cv::Vec3b>(0);
 
-    std::thread t1(count, std::ref(counter1), 0, floor((double)hsv_image.cols / 2), ptr);
-    std::thread t2(count, std::ref(counter2), floor((double)hsv_image.cols / 2), hsv_image.cols, ptr);
+    // create threads
+    std::vector<std::thread> threads(thread_number);
+    for (int i = 0; i < thread_number; i++)
+    {
+        int start = floor((double)hsv_image.cols * i / thread_number);
+        int size = floor((double)hsv_image.cols * (i + 1.0) / thread_number);
+        threads[i] = std::thread(count, std::ref(counters[i]), start, size, thread_number,
+                                 floor((size - start) * 5.4083e-6 * thread_number), ptr);
+    }
 
-    t1.join();
-    t2.join();
+    // join threads after finishing processes
+    for (std::thread &t : threads)
+    {
+        t.join();
+    }
 
-    std::transform(counter1.begin(), counter1.end(), counter2.begin(), counter1.begin(), std::plus<double>());
-    std::cout << getMaxColor(counter1) << std::endl;
+    // sum counters
+    for (int i = 1; i < thread_number; i++)
+    {
+        std::transform(counters[0].begin(), counters[0].end(), counters[i].begin(), counters[0].begin(),
+                       std::plus<double>());
+    }
 
+    // get max color
+    std::cout << getMaxColor(counters[0]) << std::endl;
+
+    // std::cout << "time reading: "
+    //          << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
+    //                                                                   start_time)
+    //                 .count()
+    //          << std::endl;
+
+    // cv::cvtColor(hsv_image.reshape(0, image.rows), image, cv::COLOR_HSV2BGR_FULL);
+    // std::string windowName = "test result"; // Name of the window
+    // cv::namedWindow(windowName); // Create a window
+    // cv::imshow(windowName, image); // Show our image inside the created window.
+    // cv::waitKey(0); // Wait for any keystroke in the window
+    // cv::destroyWindow(windowName); // destroy the created window
     return 0;
 }
 
-void count(std::vector<double> &color_counter, int start, int size, cv::Vec3b *ptr)
+void count(std::vector<double> &color_counter, int start, int size, double thread_number, int sample, cv::Vec3b *ptr)
 {
-    int sample;
-    if (size - start > 739600)
+    if (sample > 4)
     {
-        sample = floor((double)(size - start) * 2.7042e-6) + 1;
         static std::minstd_rand eng{std::random_device{}()};
         static std::uniform_int_distribution<int> dist{1, sample};
+
         for (int offset = start + dist(eng); offset < size; offset += dist(eng))
         {
             int s = (ptr[offset][2] > 45
