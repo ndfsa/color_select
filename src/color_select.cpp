@@ -96,16 +96,16 @@ int main(int argc, char **argv)
     //                 .count()
     //          << std::endl;
 
-    cv::cvtColor(hsv_image.reshape(0, image.rows), image, cv::COLOR_HSV2BGR_FULL);
-    std::string windowName = "test result"; // Name of the window
-    cv::namedWindow(windowName);            // Create a window
-    cv::imshow(windowName, image);          // Show our image inside the created window.
-    while ((cv::waitKey(0) & 0xFF) != 27)   // Wait for any keystroke in the window
-    {
+    //cv::cvtColor(hsv_image.reshape(0, image.rows), image, cv::COLOR_HSV2BGR_FULL);
+    //std::string windowName = "test result"; // Name of the window
+    //cv::namedWindow(windowName);            // Create a window
+    //cv::imshow(windowName, image);          // Show our image inside the created window.
+    //while ((cv::waitKey(0) & 0xFF) != 27)   // Wait for any keystroke in the window
+    //{
 
-        continue;
-    }
-    cv::destroyWindow(windowName); // destroy the created window
+    //    continue;
+    //}
+    //cv::destroyWindow(windowName); // destroy the created window
     return 0;
 }
 
@@ -124,7 +124,7 @@ void count(std::vector<double> &color_counter, int start, int size, double threa
                                                                             : (ptr[offset][2] > 160 ? 7 : 0))
                          : 0);
             color_counter[s] += ptr[offset][1] * ptr[offset][2] * 1.5379e-5;
-            changePixel(ptr[offset], s);
+            //changePixel(ptr[offset], s);
         }
     }
     else
@@ -136,7 +136,7 @@ void count(std::vector<double> &color_counter, int start, int size, double threa
                                                                             : (ptr[offset][2] > 164 ? 7 : 0))
                          : 0);
             color_counter[s] += ptr[offset][1] * ptr[offset][2] * 1.53e-5;
-            changePixel(ptr[offset], s);
+            //changePixel(ptr[offset], s);
         }
     }
 }
